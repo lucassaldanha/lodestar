@@ -233,6 +233,7 @@ export const validatorOptions: CliCommandOptions<IValidatorCliArgs> = {
     type: "boolean",
     description: "Enable execution payload production via a builder for better rewards",
     group: "builder",
+    deprecated: "enabling or disabling builder flow is now solely managed by `builder.selection` flag",
   },
 
   "builder.selection": {
