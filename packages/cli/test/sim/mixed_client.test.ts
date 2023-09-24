@@ -60,7 +60,8 @@ const env = await SimulationEnvironment.initWithDefaults(
       keysCount: 32,
       remote: true,
       beacon: BeaconClient.Lighthouse,
-      validator: ValidatorClient.Lodestar,
+      // for cross client make sure lodestar doesn't use v3 for now untill lighthouse supports
+      validator: {type: ValidatorClient.Lodestar, options: {useProduceBlockV3: false}},
     },
   ]
 );
