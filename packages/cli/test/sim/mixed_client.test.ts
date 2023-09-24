@@ -61,7 +61,13 @@ const env = await SimulationEnvironment.initWithDefaults(
       remote: true,
       beacon: BeaconClient.Lighthouse,
       // for cross client make sure lodestar doesn't use v3 for now untill lighthouse supports
-      validator: {type: ValidatorClient.Lodestar, options: {useProduceBlockV3: false}},
+      validator: {
+        type: ValidatorClient.Lodestar,
+        options: {
+          useProduceBlockV3: false,
+          valProposerConfig: {defaultConfig: {builder: {selection: "executiononly"}}},
+        },
+      },
     },
   ]
 );
