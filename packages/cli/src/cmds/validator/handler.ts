@@ -162,6 +162,7 @@ export async function validatorHandler(args: IValidatorCliArgs & GlobalArgs): Pr
       disableAttestationGrouping: args.disableAttestationGrouping,
       valProposerConfig,
       distributed: args.distributed,
+      useProduceBlockV3: args.useProduceBlockV3,
     },
     metrics
   );

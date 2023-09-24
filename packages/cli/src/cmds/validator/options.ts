@@ -46,6 +46,8 @@ export type IValidatorCliArgs = AccountValidatorArgs &
     builder?: boolean;
     "builder.selection"?: string;
 
+    useProduceBlockV3?: boolean;
+
     importKeystores?: string[];
     importKeystoresPassword?: string;
 
@@ -241,6 +243,12 @@ export const validatorOptions: CliCommandOptions<IValidatorCliArgs> = {
     description: "Default builder block selection strategy: `maxprofit`, `builderalways`, or `builderonly`",
     defaultDescription: `\`${defaultOptions.builderSelection}\``,
     group: "builder",
+  },
+
+  useProduceBlockV3: {
+    type: "boolean",
+    description: "Enable/disable usage of produceBlockV3 that might not be supported by all beacon clients yet",
+    defaultDescription: `${defaultOptions.useProduceBlockV3}`,
   },
 
   importKeystores: {

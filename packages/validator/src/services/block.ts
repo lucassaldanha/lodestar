@@ -24,7 +24,7 @@ import {IClock, LoggerVc} from "../util/index.js";
 import {PubkeyHex} from "../types.js";
 import {Metrics} from "../metrics.js";
 import {formatBigDecimal} from "../util/format.js";
-import {ValidatorStore} from "./validatorStore.js";
+import {ValidatorStore, defaultOptions} from "./validatorStore.js";
 import {BlockDutiesService, GENESIS_SLOT} from "./blockDuties.js";
 
 const ETH_TO_WEI = BigInt("1000000000000000000");
@@ -81,7 +81,8 @@ export class BlockProposingService {
     private readonly api: Api,
     private readonly clock: IClock,
     private readonly validatorStore: ValidatorStore,
-    private readonly metrics: Metrics | null
+    private readonly metrics: Metrics | null,
+    private readonly useProduceBlockV3: boolean = defaultOptions.useProduceBlockV3
   ) {
     this.dutiesService = new BlockDutiesService(
       config,
@@ -141,7 +142,8 @@ export class BlockProposingService {
       });
       this.metrics?.proposerStepCallProduceBlock.observe(this.clock.secFromSlot(slot));
 
-      const blockContents = await this.produceBlockWrapper(slot, randaoReveal, graffiti, {
+      const produceBlockFn = this.useProduceBlockV3 ? this.produceBlockWrapper : this.produceBlockV2Wrapper;
+      const blockContents = await produceBlockFn(slot, randaoReveal, graffiti, {
         feeRecipient,
         strictFeeRecipientCheck,
         builderSelection,
@@ -222,6 +224,7 @@ export class BlockProposingService {
       // TODO PR: should be used in api call instead of adding in log
       strictFeeRecipientCheck,
       builderSelection,
+      api: "produceBlockV3",
     };
 
     let fullOrBlindedBlockWithContents: FullOrBlindedBlockWithContents;
@@ -255,6 +258,65 @@ export class BlockProposingService {
           blobs: null,
           version: response.version,
           executionPayloadBlinded: false,
+        } as FullOrBlindedBlockWithContents;
+      }
+    }
+
+    return {...fullOrBlindedBlockWithContents, debugLogCtx};
+  };
+
+  /** a wrapper function used for backward compatibility with the clients who don't have v3 implemented yet */
+  private produceBlockV2Wrapper = async (
+    slot: Slot,
+    randaoReveal: BLSSignature,
+    graffiti: string,
+    {builderSelection}: routes.validator.ExtraProduceBlockOps
+  ): Promise<FullOrBlindedBlockWithContents & {debugLogCtx: Record<string, string | boolean | undefined>}> => {
+    // other clients have always implemented builder vs execution race in produce blinded block
+    // so if builderSelection is executiononly then only we call produceBlockV2 else produceBlockV3 always
+    const debugLogCtx = {builderSelection};
+    let fullOrBlindedBlockWithContents: FullOrBlindedBlockWithContents;
+
+    if (builderSelection === routes.validator.BuilderSelection.ExecutionOnly) {
+      Object.assign(debugLogCtx, {api: "produceBlockV2"});
+      const res = await this.api.validator.produceBlockV2(slot, randaoReveal, graffiti);
+      ApiError.assert(res, "Failed to produce block: validator.produceBlockV2");
+      const {response} = res;
+
+      if (isBlockContents(response.data)) {
+        fullOrBlindedBlockWithContents = {
+          block: response.data.block,
+          blobs: response.data.blobSidecars,
+          version: response.version,
+          executionPayloadBlinded: false,
+        } as FullOrBlindedBlockWithContents;
+      } else {
+        fullOrBlindedBlockWithContents = {
+          block: response.data,
+          blobs: null,
+          version: response.version,
+          executionPayloadBlinded: false,
+        } as FullOrBlindedBlockWithContents;
+      }
+    } else {
+      Object.assign(debugLogCtx, {api: "produceBlindedBlock"});
+      const res = await this.api.validator.produceBlindedBlock(slot, randaoReveal, graffiti);
+      ApiError.assert(res, "Failed to produce block: validator.produceBlockV2");
+      const {response} = res;
+
+      if (isBlindedBlockContents(response.data)) {
+        fullOrBlindedBlockWithContents = {
+          block: response.data.blindedBlock,
+          blobs: response.data.blindedBlobSidecars,
+          version: response.version,
+          executionPayloadBlinded: true,
+        } as FullOrBlindedBlockWithContents;
+      } else {
+        fullOrBlindedBlockWithContents = {
+          block: response.data,
+          blobs: null,
+          version: response.version,
+          executionPayloadBlinded: true,
         } as FullOrBlindedBlockWithContents;
       }
     }
