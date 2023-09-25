@@ -139,6 +139,7 @@ export class BlockProposingService {
         builderSelection,
         feeRecipient,
         strictFeeRecipientCheck,
+        useProduceBlockV3: this.useProduceBlockV3,
       });
       this.metrics?.proposerStepCallProduceBlock.observe(this.clock.secFromSlot(slot));
 
