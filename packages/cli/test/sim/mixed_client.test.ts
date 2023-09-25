@@ -64,8 +64,10 @@ const env = await SimulationEnvironment.initWithDefaults(
       validator: {
         type: ValidatorClient.Lodestar,
         options: {
-          useProduceBlockV3: false,
-          "builder.selection": "executiononly",
+          clientOptions: {
+            useProduceBlockV3: false,
+            "builder.selection": "executiononly",
+          },
         },
       },
     },
