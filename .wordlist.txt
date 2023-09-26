@@ -109,7 +109,7 @@ nodemodule
 overriden
 params
 plaintext
-produceBlockV3
+produceBlockV
 prover
 req
 reqresp
